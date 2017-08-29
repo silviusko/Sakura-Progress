@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Sakura Progress</string>
+    <string name="label_progress">Progress:</string>
+</resources>
