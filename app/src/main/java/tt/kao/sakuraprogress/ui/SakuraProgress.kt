@@ -3,8 +3,8 @@ package tt.kao.sakuraprogress.ui
 import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.Drawable
-import android.support.v4.content.ContextCompat
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import tt.kao.sakuraprogress.R
 import java.util.*
@@ -17,7 +17,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
 
     companion object {
         private const val PROGRESS_INACTIVE_COLOR = "#81ed07"
-        private const val PROGRESS_ACTIVE_COLOR = "#FC646D"
+        private const val PROGRESS_ACTIVE_COLOR = "#FF7C80"
         private const val MAX_PROGRESS = 100
         private const val INNER_PADDING = 5f
     }
@@ -32,7 +32,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     private lateinit var rectFInactiveBar: RectF
     private lateinit var rectfDrawable: RectF
 
-    private lateinit var petalFalling: PetalFalling
+    private var petalFalling = PetalFalling()
 
     private var colorInactiveProgress: Int
     private var colorActiveProgress: Int
@@ -73,7 +73,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
     private fun initBitmap() {
-        rotatedDrawable = ContextCompat.getDrawable(context, R.mipmap.ic_launcher_round)
+//        rotatedDrawable = ContextCompat.getDrawable(context, R.mipmap.ic_launcher_round)
         petalBitmap = BitmapFactory.decodeResource(resources, R.drawable.petal)
     }
 
@@ -94,7 +94,6 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
     private fun initPetals() {
-        petalFalling = PetalFalling(progressWidth, progressHeight)
         petalFalling.build(30)
     }
 
@@ -119,6 +118,11 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         rectFInactiveCap = RectF(0f, 0f, progressRadius * 2, progressRadius * 2)
         rectFActiveCap = RectF(0f, 0f, innerProgressRadius * 2, innerProgressRadius * 2)
         rectFInactiveBar = RectF(progressRadius, 0f, progressWidth - progressRadius, progressHeight.toFloat())
+
+        petalFalling.progressWidth = innerProgressWidth - petalBitmap.width
+        petalFalling.progressHeight = innerProgressHeight - petalBitmap.height
+        petalFalling.petalWidth = petalBitmap.width
+        petalFalling.petalHeight = petalBitmap.height
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -131,7 +135,6 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
 
         drawInactiveProgress(canvas)
         drawActiveProgress(canvas)
-        drawPetal(canvas)
         drawDrawable(canvas)
 
         canvas.restoreToCount(saveCount)
@@ -146,10 +149,18 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
     private fun drawActiveProgress(canvas: Canvas) {
-        currentProgressPos = innerProgressWidth.toFloat() * progress / maxProgress
-
         val saveCount = canvas.save()
         canvas.translate(innerArcPadding.toFloat(), innerArcPadding.toFloat())
+
+        drawInnerBar(canvas)
+
+        drawPetal(canvas)
+
+        canvas.restoreToCount(saveCount)
+    }
+
+    private fun drawInnerBar(canvas: Canvas) {
+        currentProgressPos = innerProgressWidth.toFloat() * progress / maxProgress
 
         if (currentProgressPos > innerProgressRadius) {
             rectFActiveBar.set(innerProgressRadius, 0f, currentProgressPos, innerProgressHeight.toFloat())
@@ -164,12 +175,20 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
 
             canvas.drawArc(rectFActiveCap, startAngle, sweepAngle, false, paintActiveProgress)
         }
-
-        canvas.restoreToCount(saveCount)
     }
 
     private fun drawPetal(canvas: Canvas) {
+        val currentTime = System.currentTimeMillis()
+        for (petal in petalFalling.petals) {
+            if (currentTime < petal.startTime || petal.startTime == 0L) continue
 
+            val saveCount = canvas.save()
+
+            val matrix = petalFalling.newMatrix(petal, currentTime)
+            canvas.drawBitmap(petalBitmap, matrix, paintBitmap)
+
+            canvas.restoreToCount(saveCount)
+        }
     }
 
     private fun drawDrawable(canvas: Canvas) {
@@ -181,6 +200,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
 }
 
 internal data class Petal(
+        val id: Int,
         var x: Float = 0f,
         var y: Float = 0f,
         var angle: Int,
@@ -188,16 +208,22 @@ internal data class Petal(
         var startTime: Long = 0
 )
 
-internal class PetalFalling(val width: Int, val height: Int) {
+internal class PetalFalling {
+
     companion object {
         private const val PETAL_FLOAT_TIME = 3000
         private const val PETAL_ROTATION_TIME = 2000
+        private const val PETAL_AMPLITUDE_TIME = 1000
     }
 
     private val random = Random()
+    private var newFallingTime: Long = 0
 
+    var progressWidth: Int = 0
+    var progressHeight: Int = 0
+    var petalWidth: Int = 0
+    var petalHeight: Int = 0
     val petals = ArrayList<Petal>()
-    var newFallingTime: Long = 0
 
     fun build(num: Int) {
         petals.clear()
@@ -206,6 +232,7 @@ internal class PetalFalling(val width: Int, val height: Int) {
             newFallingTime += random.nextInt(PETAL_FLOAT_TIME * 2).toLong()
 
             val petal = Petal(
+                    id = i,
                     angle = random.nextInt(360),
                     direction = if (random.nextBoolean()) 1 else -1,
                     startTime = System.currentTimeMillis() + newFallingTime
@@ -214,7 +241,16 @@ internal class PetalFalling(val width: Int, val height: Int) {
         }
     }
 
-    fun newLocation(petal: Petal, currentTime: Long) {
+    fun newMatrix(petal: Petal, currentTime: Long): Matrix {
+        val matrix = Matrix()
+
+        calculateLocation(currentTime, petal, matrix)
+        calculateRotation(currentTime, petal, matrix)
+
+        return matrix
+    }
+
+    private fun calculateLocation(currentTime: Long, petal: Petal, matrix: Matrix) {
         val intervalTime = currentTime - petal.startTime
         if (intervalTime < 0) return
 
@@ -223,9 +259,34 @@ internal class PetalFalling(val width: Int, val height: Int) {
         }
 
         val factor = intervalTime.toFloat() / PETAL_FLOAT_TIME
-        petal.x = width - width * factor
-        petal.y = if (petal.y == 0f) random.nextFloat() * height else petal.y
-        petal.y = (petal.y + random.nextFloat() * height) % height
+        petal.x = progressWidth - progressWidth * factor
+        petal.y = if (petal.y == 0f) random.nextFloat() * progressHeight else petal.y
+
+        calculateAmplitude(currentTime, petal, matrix)
+
+        matrix.postTranslate(petal.x, petal.y)
+        if (petal.id == 1) {
+            Log.d("SakuraProgress", "id:${petal.id} = x:${petal.x}, y:${petal.y}")
+        }
+    }
+
+    private fun calculateAmplitude(currentTime: Long, petal: Petal, matrix: Matrix) {
+        val intervalTime = currentTime - petal.startTime
+        if (intervalTime < 0) return
+
+        matrix.postTranslate(0f, petal.y - progressHeight)
+
+        val w = 2f * Math.PI / progressWidth
+        petal.y = (11 * Math.sin(w * petal.x) + progressHeight / 3).toFloat()
+
+    }
+
+    private fun calculateRotation(currentTime: Long, petal: Petal, matrix: Matrix) {
+        val rotateFactor = (currentTime - petal.startTime) % PETAL_ROTATION_TIME / PETAL_ROTATION_TIME.toFloat()
+        val angle = rotateFactor * 360 * petal.direction
+        val rotate = petal.angle + angle
+
+        matrix.postRotate(rotate, petal.x + petalWidth / 2f, petal.y + petalHeight / 2f)
     }
 }
 
