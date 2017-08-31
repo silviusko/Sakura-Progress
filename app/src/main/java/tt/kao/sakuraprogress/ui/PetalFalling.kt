@@ -35,7 +35,7 @@ class PetalFalling {
                     angle = random.nextInt(360),
                     direction = if (random.nextBoolean()) 1 else -1,
                     startTime = System.currentTimeMillis() + newFallingTime,
-                    amplitude = random.nextFloat()
+                    amplitudeSeed = random.nextInt(num) + 1
             )
             petals.add(petal)
         }
@@ -60,9 +60,8 @@ class PetalFalling {
 
         val factor = intervalTime.toFloat() / PETAL_FLOAT_TIME
         petal.x = progressWidth - progressWidth * factor
-        petal.y = if (petal.y == 0f) random.nextFloat() * progressHeight else petal.y
 
-        calculateAmplitude(currentTime, petal, matrix)
+        calculateAmplitude(currentTime, petal)
 
         matrix.postTranslate(petal.x, petal.y)
         if (petal.id == 1) {
@@ -70,13 +69,14 @@ class PetalFalling {
         }
     }
 
-    private fun calculateAmplitude(currentTime: Long, petal: Petal, matrix: Matrix) {
+    private fun calculateAmplitude(currentTime: Long, petal: Petal) {
         val intervalTime = currentTime - petal.startTime
         if (intervalTime < 0) return
 
         val w = 2f * Math.PI / progressWidth
-        val h = petal.id * 2f * Math.PI / 100
-        petal.y = (Math.sin(w * petal.x + h) * petal.amplitude * progressHeight / 2 + progressHeight / 2f).toFloat()
+        val h = petal.amplitudeSeed * Math.PI / 10
+
+        petal.y = (Math.sin(w * petal.x + h) * progressHeight / 2 + progressHeight / 2f).toFloat()
 
     }
 

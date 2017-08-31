@@ -2,7 +2,6 @@ package tt.kao.sakuraprogress.ui
 
 import android.content.Context
 import android.graphics.*
-import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.View
 import tt.kao.sakuraprogress.R
@@ -20,7 +19,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         private const val INNER_PADDING = 5f
     }
 
-    private lateinit var rotatedDrawable: Drawable
+    private lateinit var treeBitmap: Bitmap
     private lateinit var petalBitmap: Bitmap
     private lateinit var paintInactiveProgress: Paint
     private lateinit var paintActiveProgress: Paint
@@ -71,8 +70,8 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
     private fun initBitmap() {
-//        rotatedDrawable = ContextCompat.getDrawable(context, R.mipmap.ic_launcher_round)
-        petalBitmap = BitmapFactory.decodeResource(resources, R.drawable.petal)
+        treeBitmap = BitmapFactory.decodeResource(resources, R.drawable.sakura_tree)
+        petalBitmap = BitmapFactory.decodeResource(resources, R.drawable.sakura_petal)
     }
 
 

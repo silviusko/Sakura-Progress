@@ -10,5 +10,5 @@ data class Petal(
         var angle: Int,
         var direction: Int,
         var startTime: Long = 0,
-        var amplitude: Float
+        var amplitudeSeed: Int = 0
 )
