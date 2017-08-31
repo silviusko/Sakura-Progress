@@ -4,10 +4,8 @@ import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
-import android.util.Log
 import android.view.View
 import tt.kao.sakuraprogress.R
-import java.util.*
 
 /**
  * @author luke_kao
@@ -94,7 +92,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
     private fun initPetals() {
-        petalFalling.build(30)
+        petalFalling.build(100)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -185,6 +183,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
             val saveCount = canvas.save()
 
             val matrix = petalFalling.newMatrix(petal, currentTime)
+
             canvas.drawBitmap(petalBitmap, matrix, paintBitmap)
 
             canvas.restoreToCount(saveCount)
@@ -198,95 +197,3 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         return (resources.displayMetrics.density * dp).toInt()
     }
 }
-
-internal data class Petal(
-        val id: Int,
-        var x: Float = 0f,
-        var y: Float = 0f,
-        var angle: Int,
-        var direction: Int,
-        var startTime: Long = 0
-)
-
-internal class PetalFalling {
-
-    companion object {
-        private const val PETAL_FLOAT_TIME = 3000
-        private const val PETAL_ROTATION_TIME = 2000
-        private const val PETAL_AMPLITUDE_TIME = 1000
-    }
-
-    private val random = Random()
-    private var newFallingTime: Long = 0
-
-    var progressWidth: Int = 0
-    var progressHeight: Int = 0
-    var petalWidth: Int = 0
-    var petalHeight: Int = 0
-    val petals = ArrayList<Petal>()
-
-    fun build(num: Int) {
-        petals.clear()
-
-        for (i in 0 until num) {
-            newFallingTime += random.nextInt(PETAL_FLOAT_TIME * 2).toLong()
-
-            val petal = Petal(
-                    id = i,
-                    angle = random.nextInt(360),
-                    direction = if (random.nextBoolean()) 1 else -1,
-                    startTime = System.currentTimeMillis() + newFallingTime
-            )
-            petals.add(petal)
-        }
-    }
-
-    fun newMatrix(petal: Petal, currentTime: Long): Matrix {
-        val matrix = Matrix()
-
-        calculateLocation(currentTime, petal, matrix)
-        calculateRotation(currentTime, petal, matrix)
-
-        return matrix
-    }
-
-    private fun calculateLocation(currentTime: Long, petal: Petal, matrix: Matrix) {
-        val intervalTime = currentTime - petal.startTime
-        if (intervalTime < 0) return
-
-        if (intervalTime > PETAL_FLOAT_TIME) {
-            petal.startTime = System.currentTimeMillis() + random.nextInt(PETAL_FLOAT_TIME)
-        }
-
-        val factor = intervalTime.toFloat() / PETAL_FLOAT_TIME
-        petal.x = progressWidth - progressWidth * factor
-        petal.y = if (petal.y == 0f) random.nextFloat() * progressHeight else petal.y
-
-        calculateAmplitude(currentTime, petal, matrix)
-
-        matrix.postTranslate(petal.x, petal.y)
-        if (petal.id == 1) {
-            Log.d("SakuraProgress", "id:${petal.id} = x:${petal.x}, y:${petal.y}")
-        }
-    }
-
-    private fun calculateAmplitude(currentTime: Long, petal: Petal, matrix: Matrix) {
-        val intervalTime = currentTime - petal.startTime
-        if (intervalTime < 0) return
-
-        matrix.postTranslate(0f, petal.y - progressHeight)
-
-        val w = 2f * Math.PI / progressWidth
-        petal.y = (11 * Math.sin(w * petal.x) + progressHeight / 3).toFloat()
-
-    }
-
-    private fun calculateRotation(currentTime: Long, petal: Petal, matrix: Matrix) {
-        val rotateFactor = (currentTime - petal.startTime) % PETAL_ROTATION_TIME / PETAL_ROTATION_TIME.toFloat()
-        val angle = rotateFactor * 360 * petal.direction
-        val rotate = petal.angle + angle
-
-        matrix.postRotate(rotate, petal.x + petalWidth / 2f, petal.y + petalHeight / 2f)
-    }
-}
-
