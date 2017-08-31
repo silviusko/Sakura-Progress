@@ -17,17 +17,19 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         private const val PROGRESS_ACTIVE_COLOR = "#FF7C80"
         private const val MAX_PROGRESS = 100
         private const val INNER_PADDING = 5f
+        private const val PETAL_NUM = 50
     }
 
-    private lateinit var treeBitmap: Bitmap
+    private lateinit var imageBitmap: Bitmap
     private lateinit var petalBitmap: Bitmap
     private lateinit var paintInactiveProgress: Paint
     private lateinit var paintActiveProgress: Paint
     private lateinit var paintBitmap: Paint
-    private lateinit var rectFInactiveCap: RectF
-    private lateinit var rectFActiveCap: RectF
-    private lateinit var rectFInactiveBar: RectF
-    private lateinit var rectfDrawable: RectF
+    private lateinit var inactiveLeftCapRect: RectF
+    private lateinit var inactiveRightCapRect: RectF
+    private lateinit var activeLeftCapRect: RectF
+    private lateinit var activeRightCapRect: RectF
+    private lateinit var inactiveBarRect: RectF
 
     private var petalFalling = PetalFalling()
 
@@ -44,6 +46,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     private var innerProgressWidth: Int = 0
     private var innerProgressHeight: Int = 0
     private var innerProgressRadius: Float = 0f
+    private var imageScale: Float = 0f
 
     var progress: Int = 0
         get
@@ -70,7 +73,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
     private fun initBitmap() {
-        treeBitmap = BitmapFactory.decodeResource(resources, R.drawable.sakura_tree)
+        imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.sakura_flower)
         petalBitmap = BitmapFactory.decodeResource(resources, R.drawable.sakura_petal)
     }
 
@@ -91,7 +94,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
     private fun initPetals() {
-        petalFalling.build(100)
+        petalFalling.build(PETAL_NUM)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -112,14 +115,21 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         innerProgressHeight = progressHeight - 2 * innerArcPadding
         innerProgressRadius = progressRadius - innerArcPadding
 
-        rectFInactiveCap = RectF(0f, 0f, progressRadius * 2, progressRadius * 2)
-        rectFActiveCap = RectF(0f, 0f, innerProgressRadius * 2, innerProgressRadius * 2)
-        rectFInactiveBar = RectF(progressRadius, 0f, progressWidth - progressRadius, progressHeight.toFloat())
+        inactiveLeftCapRect = RectF(0f, 0f, progressRadius * 2, progressRadius * 2)
+        inactiveRightCapRect = RectF(progressWidth - progressRadius * 2f, 0f, progressWidth.toFloat(), progressRadius * 2)
+        inactiveBarRect = RectF(progressRadius, 0f, progressWidth - progressRadius, progressHeight.toFloat())
+        activeLeftCapRect = RectF(0f, 0f, innerProgressRadius * 2, innerProgressRadius * 2)
+        activeRightCapRect = RectF(innerProgressWidth - innerProgressRadius * 2, 0f, innerProgressWidth.toFloat(), innerProgressRadius * 2)
 
-        petalFalling.progressWidth = innerProgressWidth - petalBitmap.width
-        petalFalling.progressHeight = innerProgressHeight - petalBitmap.height
+        // avoid the petal to exceed the area of inner bar
+        val petalEdgeLength = Math.max(petalBitmap.width, petalBitmap.height)
+
+        petalFalling.progressWidth = innerProgressWidth - petalEdgeLength - innerProgressRadius.toInt()
+        petalFalling.progressHeight = innerProgressHeight - petalEdgeLength
         petalFalling.petalWidth = petalBitmap.width
         petalFalling.petalHeight = petalBitmap.height
+
+        imageScale = Math.min(innerProgressRadius * 2 / imageBitmap.width, innerProgressRadius * 2 / imageBitmap.height)
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -132,7 +142,8 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
 
         drawInactiveProgress(canvas)
         drawActiveProgress(canvas)
-        drawDrawable(canvas)
+        drawPetal(canvas)
+        drawImage(canvas)
 
         canvas.restoreToCount(saveCount)
 
@@ -140,29 +151,26 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
     private fun drawInactiveProgress(canvas: Canvas) {
-        canvas.drawArc(rectFInactiveCap, 90f, 180f, false, paintInactiveProgress)
+        canvas.drawArc(inactiveLeftCapRect, 90f, 180f, false, paintInactiveProgress)
+        canvas.drawArc(inactiveRightCapRect, -90f, 180f, false, paintInactiveProgress)
 
-        canvas.drawRect(rectFInactiveBar, paintInactiveProgress)
+        canvas.drawRect(inactiveBarRect, paintInactiveProgress)
     }
 
     private fun drawActiveProgress(canvas: Canvas) {
         val saveCount = canvas.save()
         canvas.translate(innerArcPadding.toFloat(), innerArcPadding.toFloat())
 
-        drawInnerBar(canvas)
-
-        drawPetal(canvas)
-
-        canvas.restoreToCount(saveCount)
-    }
-
-    private fun drawInnerBar(canvas: Canvas) {
         currentProgressPos = innerProgressWidth.toFloat() * progress / maxProgress
 
         if (currentProgressPos > innerProgressRadius) {
-            rectFActiveBar.set(innerProgressRadius, 0f, currentProgressPos, innerProgressHeight.toFloat())
+            var activeBarMaxPos = currentProgressPos
+            if (activeBarMaxPos > activeRightCapRect.centerX()) {
+                activeBarMaxPos = activeRightCapRect.centerX()
+            }
+            rectFActiveBar.set(innerProgressRadius, 0f, activeBarMaxPos, innerProgressHeight.toFloat())
 
-            canvas.drawArc(rectFActiveCap, 90f, 180f, false, paintActiveProgress)
+            canvas.drawArc(activeLeftCapRect, 90f, 180f, false, paintActiveProgress)
             canvas.drawRect(rectFActiveBar, paintActiveProgress)
         } else {
             val remainDistance = innerProgressRadius - currentProgressPos
@@ -170,26 +178,52 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
             val startAngle = 180f - degree
             val sweepAngle = degree * 2
 
-            canvas.drawArc(rectFActiveCap, startAngle, sweepAngle, false, paintActiveProgress)
+            canvas.drawArc(activeLeftCapRect, startAngle, sweepAngle, false, paintActiveProgress)
         }
+
+        canvas.restoreToCount(saveCount)
     }
 
     private fun drawPetal(canvas: Canvas) {
+        val saveCount = canvas.save()
+        canvas.translate(innerArcPadding.toFloat(), innerArcPadding.toFloat())
+        canvas.translate(0f, petalBitmap.height / 2f)
+
         val currentTime = System.currentTimeMillis()
         for (petal in petalFalling.petals) {
             if (currentTime < petal.startTime || petal.startTime == 0L) continue
 
-            val saveCount = canvas.save()
+            val petalSaveCount = canvas.save()
 
             val matrix = petalFalling.newMatrix(petal, currentTime)
 
             canvas.drawBitmap(petalBitmap, matrix, paintBitmap)
 
-            canvas.restoreToCount(saveCount)
+            canvas.restoreToCount(petalSaveCount)
         }
+
+        canvas.restoreToCount(saveCount)
     }
 
-    private fun drawDrawable(canvas: Canvas) {
+    private fun drawImage(canvas: Canvas) {
+        val saveCount = canvas.save()
+        canvas.translate(innerArcPadding.toFloat(), innerArcPadding.toFloat())
+
+        canvas.drawArc(activeRightCapRect, 0f, 360f, false, paintInactiveProgress)
+
+        canvas.translate(activeRightCapRect.left, 0f)
+
+        val degree = -Math.toDegrees(Math.PI / maxProgress * currentProgressPos).toFloat()
+        val matrix = Matrix()
+        matrix.postRotate(
+                degree,
+                imageBitmap.width / 2f,
+                imageBitmap.height / 2f
+        )
+        matrix.postScale(imageScale, imageScale)
+        canvas.drawBitmap(imageBitmap, matrix, paintBitmap)
+
+        canvas.restoreToCount(saveCount)
     }
 
     private fun dp2px(dp: Float): Int {
