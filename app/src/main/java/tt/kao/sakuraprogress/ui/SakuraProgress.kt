@@ -3,6 +3,7 @@ package tt.kao.sakuraprogress.ui
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
+import android.support.v4.content.ContextCompat
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.CycleInterpolator
@@ -17,8 +18,8 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     companion object {
         private const val MAX_PROGRESS = 100
         private const val PETAL_NUM = 15
-        private const val PROGRESS_INACTIVE_COLOR = "#7cff9d"
-        private const val PROGRESS_ACTIVE_COLOR = "#FF7C80"
+        private const val PROGRESS_INACTIVE_COLOR = R.color.colorMeadow
+        private const val PROGRESS_ACTIVE_COLOR = R.color.colorPetal
         private const val RING_COLOR = PROGRESS_ACTIVE_COLOR
         private const val OUTER_BAR_PADDING = 5f
         private const val ONE_SHOT_ANIMATION_TIME = 3000L
@@ -63,9 +64,9 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     init {
         val a = context.obtainStyledAttributes(attrs, R.styleable.SakuraProgress)
         try {
-            colorInactiveProgress = a.getColor(R.styleable.SakuraProgress_progressInactiveColor, Color.parseColor(PROGRESS_INACTIVE_COLOR))
-            colorActiveProgress = a.getColor(R.styleable.SakuraProgress_progressActiveColor, Color.parseColor(PROGRESS_ACTIVE_COLOR))
-            colorRing = a.getColor(R.styleable.SakuraProgress_ringColor, Color.parseColor(RING_COLOR))
+            colorInactiveProgress = a.getColor(R.styleable.SakuraProgress_progressInactiveColor, ContextCompat.getColor(context, PROGRESS_INACTIVE_COLOR))
+            colorActiveProgress = a.getColor(R.styleable.SakuraProgress_progressActiveColor, ContextCompat.getColor(context, PROGRESS_ACTIVE_COLOR))
+            colorRing = a.getColor(R.styleable.SakuraProgress_ringColor, ContextCompat.getColor(context, RING_COLOR))
             maxProgress = a.getInteger(R.styleable.SakuraProgress_maxProgress, MAX_PROGRESS)
         } finally {
             a.recycle()
