@@ -12,33 +12,38 @@ class PetalFalling {
     companion object {
         private const val PETAL_FLOAT_TIME = 3000
         private const val PETAL_ROTATION_TIME = 2000
-        private const val PETAL_AMPLITUDE_TIME = 1000
     }
 
     private val random = Random()
-    private var newFallingTime: Long = 0
+    private var count = 0
 
     var progressWidth: Int = 0
     var progressHeight: Int = 0
     var petalWidth: Int = 0
     var petalHeight: Int = 0
     val petals = ArrayList<Petal>()
+    var petalFallingStartTime = 0L
 
     fun build(num: Int) {
-        petals.clear()
+        prune()
 
         for (i in 0 until num) {
-            newFallingTime += random.nextInt(PETAL_FLOAT_TIME * 2).toLong()
-
             val petal = Petal(
-                    id = i,
+                    id = count++,
                     angle = random.nextInt(360),
                     direction = if (random.nextBoolean()) 1 else -1,
-                    startTime = System.currentTimeMillis() + newFallingTime,
-                    amplitudeSeed = random.nextInt(num) + 1
+                    startTime = System.currentTimeMillis() + random.nextInt(PETAL_FLOAT_TIME),
+                    amplitudeSeed = random.nextInt(num) + 1,
+                    x = progressWidth.toFloat()
             )
             petals.add(petal)
         }
+        Log.d("PetalFalling", "Petals size:${petals.size}")
+    }
+
+    private fun prune() {
+        petals.filter { it.x <= 0 }
+                .forEach { petals.remove(it) }
     }
 
     fun newMatrix(petal: Petal, currentTime: Long): Matrix {
@@ -54,12 +59,12 @@ class PetalFalling {
         val intervalTime = currentTime - petal.startTime
         if (intervalTime < 0) return
 
-        if (intervalTime > PETAL_FLOAT_TIME) {
-            petal.startTime = System.currentTimeMillis() + random.nextInt(PETAL_FLOAT_TIME)
-        }
+//        if (intervalTime > PETAL_FLOAT_TIME) {
+//            petal.startTime = System.currentTimeMillis() + random.nextInt(PETAL_FLOAT_TIME)
+//        }
 
-        val factor = intervalTime.toFloat() / PETAL_FLOAT_TIME
-        petal.x = progressWidth - progressWidth * factor
+        val fraction = intervalTime.toFloat() / PETAL_FLOAT_TIME
+        petal.x = progressWidth - progressWidth * fraction
 
         calculateAmplitude(currentTime, petal)
 

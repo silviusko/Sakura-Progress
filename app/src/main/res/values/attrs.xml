@@ -3,6 +3,7 @@
     <declare-styleable name="SakuraProgress">
         <attr name="progressInactiveColor" format="color"/>
         <attr name="progressActiveColor" format="color"/>
+        <attr name="ringColor" format="color"/>
         <attr name="maxProgress" format="integer"/>
     </declare-styleable>
 </resources>
