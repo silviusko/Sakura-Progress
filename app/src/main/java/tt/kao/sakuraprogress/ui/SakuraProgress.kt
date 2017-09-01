@@ -1,9 +1,11 @@
 package tt.kao.sakuraprogress.ui
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
+import android.view.animation.CycleInterpolator
 import tt.kao.sakuraprogress.R
 
 /**
@@ -30,6 +32,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     private lateinit var activeLeftCapRect: RectF
     private lateinit var activeRightCapRect: RectF
     private lateinit var inactiveBarRect: RectF
+    private lateinit var imageAnimator: ValueAnimator
 
     private var petalFalling = PetalFalling()
 
@@ -47,12 +50,19 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     private var innerProgressHeight: Int = 0
     private var innerProgressRadius: Float = 0f
     private var imageScale: Float = 0f
+    private var imageRotationDegree = 0f
+    private var imageRotationDirection = -1
 
     var progress: Int = 0
         get
         set(value) {
             field = value
             postInvalidate()
+
+            if (!imageAnimator.isRunning) {
+                imageRotationDirection *= -1
+                imageAnimator.start()
+            }
         }
 
     private var rectFActiveBar: RectF = RectF()
@@ -77,7 +87,6 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         petalBitmap = BitmapFactory.decodeResource(resources, R.drawable.sakura_petal)
     }
 
-
     private fun initPaints() {
         paintInactiveProgress = Paint()
         paintInactiveProgress.isAntiAlias = true
@@ -93,8 +102,22 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         paintBitmap.isFilterBitmap = true
     }
 
+
     private fun initPetals() {
         petalFalling.build(PETAL_NUM)
+    }
+
+    private fun initAnimator() {
+        imageAnimator = ValueAnimator.ofFloat(0f, 1.6f * 360)
+        imageAnimator.interpolator = CycleInterpolator(0.5f)
+        imageAnimator.duration = 3000
+        imageAnimator.addUpdateListener {
+            val value = it.animatedValue as Float
+
+            imageRotationDegree = imageRotationDirection * value
+
+            postInvalidate()
+        }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -130,6 +153,8 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         petalFalling.petalHeight = petalBitmap.height
 
         imageScale = Math.min(innerProgressRadius * 2 / imageBitmap.width, innerProgressRadius * 2 / imageBitmap.height)
+
+        initAnimator()
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -213,10 +238,9 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
 
         canvas.translate(activeRightCapRect.left, 0f)
 
-        val degree = -Math.toDegrees(Math.PI / maxProgress * currentProgressPos).toFloat()
         val matrix = Matrix()
         matrix.postRotate(
-                degree,
+                imageRotationDegree,
                 imageBitmap.width / 2f,
                 imageBitmap.height / 2f
         )
