@@ -24,7 +24,7 @@ class PetalFalling {
     val petals = ArrayList<Petal>()
     var petalFallingStartTime = 0L
 
-    fun build(num: Int) {
+    fun bloom(num: Int) {
         prune()
 
         for (i in 0 until num) {
@@ -59,19 +59,13 @@ class PetalFalling {
         val intervalTime = currentTime - petal.startTime
         if (intervalTime < 0) return
 
-//        if (intervalTime > PETAL_FLOAT_TIME) {
-//            petal.startTime = System.currentTimeMillis() + random.nextInt(PETAL_FLOAT_TIME)
-//        }
-
         val fraction = intervalTime.toFloat() / PETAL_FLOAT_TIME
         petal.x = progressWidth - progressWidth * fraction
 
         calculateAmplitude(currentTime, petal)
 
         matrix.postTranslate(petal.x, petal.y)
-        if (petal.id == 1) {
-            Log.d("SakuraProgress", "id:${petal.id} = x:${petal.x}, y:${petal.y}")
-        }
+//        Log.d("SakuraProgress", "x:${petal.x}, y:${petal.y}")
     }
 
     private fun calculateAmplitude(currentTime: Long, petal: Petal) {

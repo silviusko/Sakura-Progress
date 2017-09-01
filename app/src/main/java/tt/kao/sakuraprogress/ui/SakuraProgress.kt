@@ -56,7 +56,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     private var innerProgressWidth: Int = 0
     private var innerProgressHeight: Int = 0
     private var innerProgressRadius: Float = 0f
-    private var imageScale: Float = 0f
+    private var imageBitmapScale: Float = 0f
     private var imageRotationDegree = 0f
     private var imageRotationDirection = -1
     private var hasPetalFalling = false
@@ -142,8 +142,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         petalFalling.petalWidth = petalBitmap.width
         petalFalling.petalHeight = petalBitmap.height
 
-        // with 5% padding
-        imageScale = Math.min(innerProgressRadius * 2 / imageBitmap.width, innerProgressRadius * 2 / imageBitmap.height)
+        imageBitmapScale = Math.min(innerProgressRadius * 2 / imageBitmap.width, innerProgressRadius * 2 / imageBitmap.height)
 
         initAnimator()
     }
@@ -156,6 +155,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         val saveCount = canvas.save()
         canvas.translate(paddingLeft.toFloat(), paddingTop.toFloat())
 
+        calculateCurrentPosition()
         drawInactiveProgress(canvas)
         drawActiveProgress(canvas)
         drawPetal(canvas)
@@ -164,6 +164,10 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         canvas.restoreToCount(saveCount)
 
         if (hasPetalFalling) postInvalidateDelayed(FLAME_RENDER_INTERVAL)
+    }
+
+    private fun calculateCurrentPosition() {
+        currentProgressPos = innerProgressWidth.toFloat() * progress / maxProgress
     }
 
     private fun drawInactiveProgress(canvas: Canvas) {
@@ -176,8 +180,6 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     private fun drawActiveProgress(canvas: Canvas) {
         val saveCount = canvas.save()
         canvas.translate(innerArcPadding.toFloat(), innerArcPadding.toFloat())
-
-        currentProgressPos = innerProgressWidth.toFloat() * progress / maxProgress
 
         if (currentProgressPos > innerProgressRadius) {
             var activeBarMaxPos = currentProgressPos
@@ -209,6 +211,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         val currentTime = System.currentTimeMillis()
         for (petal in petalFalling.petals) {
             if (currentTime < petal.startTime || petal.startTime == 0L) continue
+            if (petal.x + petalBitmap.width < currentProgressPos) continue
             if (petal.x <= 0) continue
 
             val petalSaveCount = canvas.save()
@@ -239,7 +242,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
                 imageBitmap.width / 2f,
                 imageBitmap.height / 2f
         )
-        matrix.postScale(imageScale, imageScale)
+        matrix.postScale(imageBitmapScale, imageBitmapScale)
         canvas.drawBitmap(imageBitmap, matrix, paintBitmap)
 
         canvas.restoreToCount(saveCount)
@@ -256,7 +259,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
 
     private fun initPetals() {
         petalFalling.petalFallingStartTime = System.currentTimeMillis() + ONE_SHOT_ANIMATION_TIME
-        petalFalling.build(PETAL_NUM)
+        petalFalling.bloom(PETAL_NUM)
     }
 
     private fun dp2px(dp: Float): Int {
