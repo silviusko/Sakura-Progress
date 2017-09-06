@@ -10,7 +10,7 @@ import java.util.*
 class PetalFalling {
 
     companion object {
-        private const val PETAL_FLOAT_TIME = 3000
+        private const val PETAL_FLOATING_TIME = 3000
         private const val PETAL_ROTATION_TIME = 2000
     }
 
@@ -23,6 +23,8 @@ class PetalFalling {
     var petalHeight: Int = 0
     val petals = ArrayList<Petal>()
     var petalFallingStartTime = 0L
+    var floatTime = PETAL_FLOATING_TIME
+    var rotateTime = PETAL_ROTATION_TIME
 
     fun bloom(num: Int) {
         prune()
@@ -32,7 +34,7 @@ class PetalFalling {
                     id = count++,
                     angle = random.nextInt(360),
                     direction = if (random.nextBoolean()) 1 else -1,
-                    startTime = System.currentTimeMillis() + random.nextInt(PETAL_FLOAT_TIME),
+                    startTime = System.currentTimeMillis() + random.nextInt(floatTime),
                     amplitudeSeed = random.nextInt(num) + 1,
                     x = progressWidth.toFloat()
             )
@@ -59,7 +61,7 @@ class PetalFalling {
         val intervalTime = currentTime - petal.startTime
         if (intervalTime < 0) return
 
-        val fraction = intervalTime.toFloat() / PETAL_FLOAT_TIME
+        val fraction = intervalTime.toFloat() / floatTime
         petal.x = progressWidth - progressWidth * fraction
 
         calculateAmplitude(currentTime, petal)
@@ -80,7 +82,7 @@ class PetalFalling {
     }
 
     private fun calculateRotation(currentTime: Long, petal: Petal, matrix: Matrix) {
-        val rotateFactor = (currentTime - petal.startTime) % PETAL_ROTATION_TIME / PETAL_ROTATION_TIME.toFloat()
+        val rotateFactor = (currentTime - petal.startTime) % rotateTime / rotateTime.toFloat()
         val angle = rotateFactor * 360 * petal.direction
         val rotate = petal.angle + angle
 

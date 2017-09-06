@@ -7,72 +7,39 @@
     android:layout_height="match_parent"
     tools:context="tt.kao.sakuraprogress.MainActivity">
 
-    <android.support.constraint.Guideline
-        android:id="@+id/startGuideline"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.33"/>
-
-    <Button
-        android:id="@+id/demo_btn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:text="@string/demo"
-        app:layout_constraintBottom_toTopOf="@+id/startGuideline"
-        app:layout_constraintEnd_toEndOf="parent"/>
 
     <tt.kao.sakuraprogress.ui.SakuraProgress
         android:id="@+id/sakuraProgress"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="32dp"
         android:padding="5dp"
-        app:layout_constraintBottom_toTopOf="@+id/demo_btn"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
 
-    <TextView
-        android:id="@+id/tvProgress"
+    <Button
+        android:id="@+id/demo_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="32dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/startGuideline"/>
+        android:layout_margin="8dp"
+        android:text="@string/demo"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sakuraProgress"/>
 
-    <SeekBar
-        android:id="@+id/progressSeekBar"
+    <ScrollView
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="8dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvProgress"/>
+        app:layout_constraintTop_toBottomOf="@+id/demo_btn">
 
-    <TextView
-        android:id="@+id/tvPetalNum"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="32dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/progressSeekBar"/>
+        <include layout="@layout/layout_configs"/>
 
-    <SeekBar
-        android:id="@+id/petalNumSeekBar"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="8dp"
-        android:max="100"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvPetalNum"/>
-
+    </ScrollView>
 
 </android.support.constraint.ConstraintLayout>

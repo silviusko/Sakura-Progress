@@ -3,4 +3,6 @@
     <string name="demo">Demo</string>
     <string name="label_progress">Progress: %1$d</string>
     <string name="label_petal_num">Petal Numbers: %1$d</string>
+    <string name="label_float_time">Float Time: %1$d ms</string>
+    <string name="label_rotate_time">Rotate Time: %1$d ms</string>
 </resources>

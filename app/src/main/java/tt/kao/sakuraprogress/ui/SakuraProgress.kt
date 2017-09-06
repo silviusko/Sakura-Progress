@@ -291,4 +291,17 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         set(value) {
             maxPetalNum = value
         }
+
+    var petalFloatTime: Int
+        get() = petalFalling.floatTime
+        set(value) {
+            petalFalling.floatTime = value
+        }
+
+    var petalRotateTime: Int
+        get() = petalFalling.rotateTime
+        set(value) {
+            petalFalling.rotateTime = value
+        }
+
 }
