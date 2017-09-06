@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="SakuraProgress">
-        <attr name="progressInactiveColor" format="color"/>
-        <attr name="progressActiveColor" format="color"/>
-        <attr name="ringColor" format="color"/>
+        <attr name="inactiveBarColor" format="color"/>
+        <attr name="activeBarColor" format="color"/>
+        <attr name="flowerRingColor" format="color"/>
+        <attr name="flowerRingWidth" format="dimension"/>
         <attr name="maxProgress" format="integer"/>
+        <attr name="petalNum" format="integer"/>
     </declare-styleable>
 </resources>

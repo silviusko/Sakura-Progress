@@ -18,19 +18,21 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     companion object {
         private const val MAX_PROGRESS = 100
         private const val PETAL_NUM = 15
-        private const val PROGRESS_INACTIVE_COLOR = R.color.colorMeadow
-        private const val PROGRESS_ACTIVE_COLOR = R.color.colorPetal
-        private const val RING_COLOR = PROGRESS_ACTIVE_COLOR
+        private const val INACTIVE_BAR_COLOR = R.color.colorMeadow
+        private const val ACTIVE_BAR_COLOR = R.color.colorPetal
+        private const val FLOWER_RING_COLOR = ACTIVE_BAR_COLOR
         private const val OUTER_BAR_PADDING = 5f
         private const val ONE_SHOT_ANIMATION_TIME = 3000L
         private const val FLAME_RENDER_INTERVAL = 150L
+        private const val FLOWER_RING_WIDTH = 3f
+        private const val MINIMAL_WIDTH_AND_HEIGHT = 50
     }
 
-    private lateinit var imageBitmap: Bitmap
+    private lateinit var flowerBitmap: Bitmap
     private lateinit var petalBitmap: Bitmap
     private lateinit var paintInactiveProgress: Paint
     private lateinit var paintActiveProgress: Paint
-    private lateinit var paintRing: Paint
+    private lateinit var paintFlowerRing: Paint
     private lateinit var paintBitmap: Paint
     private lateinit var inactiveLeftCapRect: RectF
     private lateinit var inactiveRightCapRect: RectF
@@ -42,10 +44,15 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     private var rectFActiveBar: RectF = RectF()
     private var petalFalling = PetalFalling()
 
-    private var colorInactiveProgress: Int
-    private var colorActiveProgress: Int
-    private var colorRing: Int
+    // configurations
+    private var inactiveBarColor: Int
+    private var activeBarColor: Int
+    private var flowerRingWidth: Float = 0f
+    private var flowerRingColor: Int
     private var maxProgress: Int
+    private var maxPetalNum: Int
+
+    // internal values
     private var viewWidth: Int = 0
     private var viewHeight: Int = 0
     private var progressWidth: Int = 0
@@ -56,18 +63,21 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     private var innerProgressWidth: Int = 0
     private var innerProgressHeight: Int = 0
     private var innerProgressRadius: Float = 0f
-    private var imageBitmapScale: Float = 0f
-    private var imageRotationDegree = 0f
-    private var imageRotationDirection = -1
+    private var flowerScale: Float = 0f
+    private var flowerRotationDegree = 0f
+    private var flowerRotationDirection = -1
     private var hasPetalFalling = false
 
     init {
         val a = context.obtainStyledAttributes(attrs, R.styleable.SakuraProgress)
+
         try {
-            colorInactiveProgress = a.getColor(R.styleable.SakuraProgress_progressInactiveColor, ContextCompat.getColor(context, PROGRESS_INACTIVE_COLOR))
-            colorActiveProgress = a.getColor(R.styleable.SakuraProgress_progressActiveColor, ContextCompat.getColor(context, PROGRESS_ACTIVE_COLOR))
-            colorRing = a.getColor(R.styleable.SakuraProgress_ringColor, ContextCompat.getColor(context, RING_COLOR))
+            inactiveBarColor = a.getColor(R.styleable.SakuraProgress_inactiveBarColor, ContextCompat.getColor(context, INACTIVE_BAR_COLOR))
+            activeBarColor = a.getColor(R.styleable.SakuraProgress_activeBarColor, ContextCompat.getColor(context, ACTIVE_BAR_COLOR))
+            flowerRingColor = a.getColor(R.styleable.SakuraProgress_flowerRingColor, ContextCompat.getColor(context, FLOWER_RING_COLOR))
             maxProgress = a.getInteger(R.styleable.SakuraProgress_maxProgress, MAX_PROGRESS)
+            flowerRingWidth = a.getDimension(R.styleable.SakuraProgress_flowerRingWidth, ViewTool.dp2Px(context, FLOWER_RING_WIDTH))
+            maxPetalNum = a.getInteger(R.styleable.SakuraProgress_petalNum, PETAL_NUM)
         } finally {
             a.recycle()
         }
@@ -77,23 +87,23 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
     private fun initBitmap() {
-        imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.sakura_flower)
+        flowerBitmap = BitmapFactory.decodeResource(resources, R.drawable.sakura_flower)
         petalBitmap = BitmapFactory.decodeResource(resources, R.drawable.sakura_petal)
     }
 
     private fun initPaints() {
         paintInactiveProgress = Paint(Paint.ANTI_ALIAS_FLAG)
-        paintInactiveProgress.color = colorInactiveProgress
+        paintInactiveProgress.color = inactiveBarColor
 
         paintActiveProgress = Paint(Paint.ANTI_ALIAS_FLAG)
-        paintActiveProgress.color = colorActiveProgress
+        paintActiveProgress.color = activeBarColor
+
+        paintFlowerRing = Paint(Paint.ANTI_ALIAS_FLAG)
+        paintFlowerRing.style = Paint.Style.STROKE
+        paintFlowerRing.color = flowerRingColor
+        paintFlowerRing.strokeWidth = ViewTool.dp2Px(context, 3f)
 
         paintBitmap = Paint(Paint.ANTI_ALIAS_FLAG or Paint.DITHER_FLAG or Paint.FILTER_BITMAP_FLAG)
-
-        paintRing = Paint(Paint.ANTI_ALIAS_FLAG)
-        paintRing.style = Paint.Style.STROKE
-        paintRing.color = colorRing
-        paintRing.strokeWidth = dp2px(3f).toFloat()
     }
 
 
@@ -104,14 +114,19 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         imageAnimator.addUpdateListener {
             val value = it.animatedValue as Float
 
-            imageRotationDegree = imageRotationDirection * value
+            flowerRotationDegree = flowerRotationDirection * value
 
             postInvalidateDelayed(FLAME_RENDER_INTERVAL)
         }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        val defaultSize = ViewTool.dp2Px(context, MINIMAL_WIDTH_AND_HEIGHT.toFloat()).toInt()
+
+        val width = ViewTool.measure(defaultSize, widthMeasureSpec)
+        val height = ViewTool.measure(defaultSize, heightMeasureSpec)
+
+        setMeasuredDimension(width, height)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -123,7 +138,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         progressHeight = viewHeight - paddingTop - paddingBottom
         progressRadius = progressHeight / 2f
 
-        innerArcPadding = dp2px(OUTER_BAR_PADDING)
+        innerArcPadding = ViewTool.dp2Px(context, OUTER_BAR_PADDING).toInt()
         innerProgressWidth = progressWidth - 2 * innerArcPadding
         innerProgressHeight = progressHeight - 2 * innerArcPadding
         innerProgressRadius = progressRadius - innerArcPadding
@@ -142,7 +157,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         petalFalling.petalWidth = petalBitmap.width
         petalFalling.petalHeight = petalBitmap.height
 
-        imageBitmapScale = Math.min(innerProgressRadius * 2 / imageBitmap.width, innerProgressRadius * 2 / imageBitmap.height)
+        flowerScale = Math.min(innerProgressRadius * 2 / flowerBitmap.width, innerProgressRadius * 2 / flowerBitmap.height)
 
         initAnimator()
     }
@@ -231,19 +246,19 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
         val saveCount = canvas.save()
 
         canvas.drawArc(inactiveRightCapRect, 0f, 360f, false, paintInactiveProgress)
-        canvas.drawArc(inactiveRightCapRect, 0f, 360f, false, paintRing)
+        canvas.drawArc(inactiveRightCapRect, 0f, 360f, false, paintFlowerRing)
 
         canvas.translate(innerArcPadding.toFloat(), innerArcPadding.toFloat())
         canvas.translate(activeRightCapRect.left, 0f)
 
         val matrix = Matrix()
         matrix.postRotate(
-                imageRotationDegree,
-                imageBitmap.width / 2f,
-                imageBitmap.height / 2f
+                flowerRotationDegree,
+                flowerBitmap.width / 2f,
+                flowerBitmap.height / 2f
         )
-        matrix.postScale(imageBitmapScale, imageBitmapScale)
-        canvas.drawBitmap(imageBitmap, matrix, paintBitmap)
+        matrix.postScale(flowerScale, flowerScale)
+        canvas.drawBitmap(flowerBitmap, matrix, paintBitmap)
 
         canvas.restoreToCount(saveCount)
     }
@@ -251,7 +266,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
     private fun startAnimation() {
         if (imageAnimator.isRunning) return
 
-        imageRotationDirection *= -1
+        flowerRotationDirection *= -1
         imageAnimator.start()
 
         initPetals()
@@ -259,11 +274,7 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
 
     private fun initPetals() {
         petalFalling.petalFallingStartTime = System.currentTimeMillis() + ONE_SHOT_ANIMATION_TIME
-        petalFalling.bloom(PETAL_NUM)
-    }
-
-    private fun dp2px(dp: Float): Int {
-        return (resources.displayMetrics.density * dp).toInt()
+        petalFalling.bloom(maxPetalNum)
     }
 
     var progress: Int = 0
@@ -273,5 +284,11 @@ class SakuraProgress @JvmOverloads constructor(context: Context, attrs: Attribut
             postInvalidate()
 
             startAnimation()
+        }
+
+    var petalNum: Int
+        get() = maxPetalNum
+        set(value) {
+            maxPetalNum = value
         }
 }
