@@ -4,6 +4,29 @@ A good look progress implementation in Kotlin.
 
 ![demo](doc/demo.gif)
 
+## Screenshot
+
+![screenshot](doc/screenshot.png)
+
+## Usage
+
+In xml:
+```xml
+<tt.kao.sakuraprogress.ui.SakuraProgress
+    android:id="@+id/sakuraProgress"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"/>
+```
+
+In code:
+```kotlin
+val sakuraProgress = findViewById(R.id.sakuraProgress)
+sakuraProgress.progress = progress // set current progress value
+sakuraProgress.petalNum = petalNumber // set number of petals in one falling
+sakuraProgress.petalFloatTime = floatTime // set time of petal falling 
+sakuraProgress.petalRotateTime = rotateTime // set time of petal rotation
+```
+
 ## Reference
 
 [GALeafLoading](https://github.com/Ajian-studio/GALeafLoading)
